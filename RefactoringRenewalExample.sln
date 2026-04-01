@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegacyRenewalAppConsumer", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegacyRenewalApp", "LegacyRenewalApp\LegacyRenewalApp.csproj", "{A621B116-7D53-4C36-A3A4-C2A25F5D2A77}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RenewalAppTests", "RenewalAppTests\RenewalAppTests.csproj", "{960BAD61-9C5C-41BD-90C0-45A93BD91D8C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{A621B116-7D53-4C36-A3A4-C2A25F5D2A77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A621B116-7D53-4C36-A3A4-C2A25F5D2A77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A621B116-7D53-4C36-A3A4-C2A25F5D2A77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{960BAD61-9C5C-41BD-90C0-45A93BD91D8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{960BAD61-9C5C-41BD-90C0-45A93BD91D8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{960BAD61-9C5C-41BD-90C0-45A93BD91D8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{960BAD61-9C5C-41BD-90C0-45A93BD91D8C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
