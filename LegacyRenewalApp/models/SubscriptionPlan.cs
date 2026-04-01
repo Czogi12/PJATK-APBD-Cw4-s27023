@@ -1,4 +1,4 @@
-namespace LegacyRenewalApp
+namespace LegacyRenewalApp.models
 {
     public class SubscriptionPlan
     {

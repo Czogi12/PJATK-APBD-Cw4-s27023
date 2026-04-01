@@ -1,5 +1,6 @@
 using System;
 using LegacyRenewalApp;
+using LegacyRenewalApp.services;
 
 namespace LegacyRenewalAppConsumer
 {

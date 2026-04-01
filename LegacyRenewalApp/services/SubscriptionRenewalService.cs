@@ -1,6 +1,9 @@
 using System;
+using LegacyRenewalApp.libs;
+using LegacyRenewalApp.models;
+using LegacyRenewalApp.repositories;
 
-namespace LegacyRenewalApp
+namespace LegacyRenewalApp.services
 {
     public class SubscriptionRenewalService
     {
