@@ -1,14 +1,21 @@
 using System;
 using LegacyRenewalApp.interfaces.repositories;
+using LegacyRenewalApp.interfaces.validators;
 using LegacyRenewalApp.libs;
 using LegacyRenewalApp.models;
 using LegacyRenewalApp.repositories;
+using LegacyRenewalApp.validators;
 
 namespace LegacyRenewalApp.services
 {
-    public class SubscriptionRenewalService(ICustomerRepository customerRepository, ISubscriptionPlanRepository planRepository)
+    public class SubscriptionRenewalService(
+        ICustomerRepository customerRepository, ISubscriptionPlanRepository planRepository, 
+        IRenewalRequestValidator renewalRequestValidator
+        
+        )
     {
-        public SubscriptionRenewalService() : this(new CustomerRepository(), new SubscriptionPlanRepository())
+        public SubscriptionRenewalService() : 
+            this(new CustomerRepository(), new SubscriptionPlanRepository(), new RenewalRequestValidator())
         {
         }
 
@@ -20,26 +27,8 @@ namespace LegacyRenewalApp.services
             bool includePremiumSupport,
             bool useLoyaltyPoints)
         {
-            if (customerId <= 0)
-            {
-                throw new ArgumentException("Customer id must be positive");
-            }
-
-            if (string.IsNullOrWhiteSpace(planCode))
-            {
-                throw new ArgumentException("Plan code is required");
-            }
-
-            if (seatCount <= 0)
-            {
-                throw new ArgumentException("Seat count must be positive");
-            }
-
-            if (string.IsNullOrWhiteSpace(paymentMethod))
-            {
-                throw new ArgumentException("Payment method is required");
-            }
-
+            renewalRequestValidator.Validate(customerId, planCode, seatCount, paymentMethod);
+            
             string normalizedPlanCode = planCode.Trim().ToUpperInvariant();
             string normalizedPaymentMethod = paymentMethod.Trim().ToUpperInvariant();
 
