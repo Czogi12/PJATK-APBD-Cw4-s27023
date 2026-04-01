@@ -1,14 +1,17 @@
 using System;
+using LegacyRenewalApp.interfaces.repositories;
 using LegacyRenewalApp.libs;
 using LegacyRenewalApp.models;
 using LegacyRenewalApp.repositories;
 
 namespace LegacyRenewalApp.services
 {
-    public class SubscriptionRenewalService
+    public class SubscriptionRenewalService(ICustomerRepository customerRepository, ISubscriptionPlanRepository planRepository)
     {
-                
-        
+        public SubscriptionRenewalService() : this(new CustomerRepository(), new SubscriptionPlanRepository())
+        {
+        }
+
         public RenewalInvoice CreateRenewalInvoice(
             int customerId,
             string planCode,
@@ -39,9 +42,6 @@ namespace LegacyRenewalApp.services
 
             string normalizedPlanCode = planCode.Trim().ToUpperInvariant();
             string normalizedPaymentMethod = paymentMethod.Trim().ToUpperInvariant();
-
-            var customerRepository = new CustomerRepository();
-            var planRepository = new SubscriptionPlanRepository();
 
             var customer = customerRepository.GetById(customerId);
             var plan = planRepository.GetByCode(normalizedPlanCode);
