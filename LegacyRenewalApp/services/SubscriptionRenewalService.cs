@@ -7,6 +7,8 @@ namespace LegacyRenewalApp.services
 {
     public class SubscriptionRenewalService
     {
+                
+        
         public RenewalInvoice CreateRenewalInvoice(
             int customerId,
             string planCode,

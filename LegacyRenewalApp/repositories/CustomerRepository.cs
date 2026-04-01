@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using LegacyRenewalApp.interfaces.repositories;
 using LegacyRenewalApp.models;
 
 namespace LegacyRenewalApp.repositories
 {
-    public class CustomerRepository
+    public class CustomerRepository : ICustomerRepository
     {
         public static readonly Dictionary<int, Customer> Database = new Dictionary<int, Customer>
         {
