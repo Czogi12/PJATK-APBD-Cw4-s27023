@@ -1,21 +1,23 @@
 using System;
 using LegacyRenewalApp.interfaces.repositories;
+using LegacyRenewalApp.interfaces.services;
 using LegacyRenewalApp.interfaces.validators;
 using LegacyRenewalApp.libs;
 using LegacyRenewalApp.models;
 using LegacyRenewalApp.repositories;
+using LegacyRenewalApp.utils;
 using LegacyRenewalApp.validators;
 
 namespace LegacyRenewalApp.services
 {
     public class SubscriptionRenewalService(
-        ICustomerRepository customerRepository, ISubscriptionPlanRepository planRepository, 
+        ICustomerService customerService, IPlanService planService, 
         IRenewalRequestValidator renewalRequestValidator
         
-        )
+        ) : ISubscriptionRenewalService
     {
         public SubscriptionRenewalService() : 
-            this(new CustomerRepository(), new SubscriptionPlanRepository(), new RenewalRequestValidator())
+            this(new CustomerService(new CustomerRepository()), new PlanService(new SubscriptionPlanRepository()), new RenewalRequestValidator())
         {
         }
 
@@ -27,13 +29,12 @@ namespace LegacyRenewalApp.services
             bool includePremiumSupport,
             bool useLoyaltyPoints)
         {
-            renewalRequestValidator.Validate(customerId, planCode, seatCount, paymentMethod);
+            renewalRequestValidator.Validate(seatCount, paymentMethod);
             
-            string normalizedPlanCode = planCode.Trim().ToUpperInvariant();
             string normalizedPaymentMethod = paymentMethod.Trim().ToUpperInvariant();
 
-            var customer = customerRepository.GetById(customerId);
-            var plan = planRepository.GetByCode(normalizedPlanCode);
+            var customer = customerService.GetById(customerId);
+            var plan = planService.GetByCode(planCode);
 
             if (!customer.IsActive)
             {
@@ -107,6 +108,7 @@ namespace LegacyRenewalApp.services
             }
 
             decimal supportFee = 0m;
+            string normalizedPlanCode = PlanCodeUtil.Normalize(planCode);
             if (includePremiumSupport)
             {
                 if (normalizedPlanCode == "START")
