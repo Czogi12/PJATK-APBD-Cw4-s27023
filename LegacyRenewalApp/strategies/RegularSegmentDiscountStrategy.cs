@@ -19,6 +19,6 @@ public class RegularSegmentDiscountStrategy : ISegmentDiscountStrategy
 
     public string GetNotes(CustomerSegment segment)
     {
-        return $"{Enum.GetName(segment)} discount; ";
+        return $"{Enum.GetName(segment)?.ToLowerInvariant()} discount; ";
     }
 }
