@@ -1,14 +1,18 @@
-namespace LegacyRenewalApp.models
+using LegacyRenewalApp.enums;
+using LegacyRenewalApp.extensions;
+
+namespace LegacyRenewalApp.models;
+
+public class Customer
 {
-    public class Customer
-    {
-        public int Id { get; set; }
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Segment { get; set; } = string.Empty;
-        public string Country { get; set; } = string.Empty;
-        public int YearsWithCompany { get; set; }
-        public int LoyaltyPoints { get; set; }
-        public bool IsActive { get; set; }
-    }
+    public int Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Segment { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+    public int YearsWithCompany { get; set; }
+    public int LoyaltyPoints { get; set; }
+    public bool IsActive { get; set; }
+
+    public CustomerSegment CustomerSegment => Segment.ToCustomerSegment();
 }

@@ -27,4 +27,16 @@ public static class StringExtensions
             _ => throw new ArgumentException($"Unsupported paymentMethod: {paymentMethod}")
         };
     }
+
+    public static CustomerSegment ToCustomerSegment(this string segment)
+    {
+        return segment.Trim().ToUpperInvariant() switch
+        {
+            "SILVER" => CustomerSegment.Silver,
+            "GOLD" => CustomerSegment.Gold,
+            "PLATINUM" => CustomerSegment.Platinum,
+            "EDUCATION" => CustomerSegment.Education,
+            _ => throw new ArgumentException($"Unsupported segment: {segment}")
+        };
+    }
 }
