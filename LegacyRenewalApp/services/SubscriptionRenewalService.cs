@@ -14,12 +14,13 @@ public class SubscriptionRenewalService(
     ICustomerService customerService,
     IPlanService planService,
     IRenewalRequestValidator renewalRequestValidator,
-    ISegmentDiscountStrategy segmentDiscountStrategy
+    ISegmentDiscountStrategy segmentDiscountStrategy,
+    ILoyaltyDiscountStrategy loyaltyDiscountStrategy
 ) : ISubscriptionRenewalService
 {
     public SubscriptionRenewalService() :
         this(new CustomerService(new CustomerRepository()), new PlanService(new SubscriptionPlanRepository()),
-            new RenewalRequestValidator(), new RegularSegmentDiscountStrategy()
+            new RenewalRequestValidator(), new RegularSegmentDiscountStrategy(), new RegularLoyaltyStrategy()
         )
     {
     }
@@ -45,20 +46,13 @@ public class SubscriptionRenewalService(
         var discountAmount = 0m;
         var notes = string.Empty;
 
-        var segmentDiscount = segmentDiscountStrategy.GetDiscount(customer.CustomerSegment);
-        discountAmount += baseAmount * segmentDiscount;
-        notes += $"{customer.Segment.ToLowerInvariant()} discount; ";
+        // segment
+        discountAmount += baseAmount * segmentDiscountStrategy.GetDiscount(customer.CustomerSegment);
+        notes += segmentDiscountStrategy.GetNotes(customer.CustomerSegment);
 
-        if (customer.YearsWithCompany >= 5)
-        {
-            discountAmount += baseAmount * 0.07m;
-            notes += "long-term loyalty discount; ";
-        }
-        else if (customer.YearsWithCompany >= 2)
-        {
-            discountAmount += baseAmount * 0.03m;
-            notes += "basic loyalty discount; ";
-        }
+        //loyalty
+        discountAmount += baseAmount * loyaltyDiscountStrategy.GetDiscount(customer.YearsWithCompany);
+        notes += loyaltyDiscountStrategy.GetNotes(customer.YearsWithCompany);
 
         if (seatCount >= 50)
         {

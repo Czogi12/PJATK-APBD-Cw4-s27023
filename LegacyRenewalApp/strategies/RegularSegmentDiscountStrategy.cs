@@ -16,4 +16,9 @@ public class RegularSegmentDiscountStrategy : ISegmentDiscountStrategy
             _ => throw new ArgumentOutOfRangeException(nameof(segment), segment, null)
         };
     }
+
+    public string GetNotes(CustomerSegment segment)
+    {
+        return $"{Enum.GetName(segment)} discount; ";
+    }
 }
