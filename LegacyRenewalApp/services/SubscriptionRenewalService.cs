@@ -14,13 +14,17 @@ public class SubscriptionRenewalService(
     ICustomerService customerService,
     IPlanService planService,
     IRenewalRequestValidator renewalRequestValidator,
-    ISegmentDiscountStrategy segmentDiscountStrategy,
-    ILoyaltyDiscountStrategy loyaltyDiscountStrategy
+    ISubscriptionDiscountService subscriptionDiscountService
 ) : ISubscriptionRenewalService
 {
     public SubscriptionRenewalService() :
         this(new CustomerService(new CustomerRepository()), new PlanService(new SubscriptionPlanRepository()),
-            new RenewalRequestValidator(), new RegularSegmentDiscountStrategy(), new RegularLoyaltyStrategy()
+            new RenewalRequestValidator(), new SubscriptionDiscountService(
+                new RegularSegmentDiscountStrategy(),
+                new RegularLoyaltyDiscountStrategy(),
+                new RegularSeatsDiscountStrategy(),
+                new RegularPointsDiscountStrategy()
+            )
         )
     {
     }
@@ -42,42 +46,12 @@ public class SubscriptionRenewalService(
 
         if (!customer.IsActive) throw new InvalidOperationException("Inactive customers cannot renew subscriptions");
 
+
         var baseAmount = plan.MonthlyPricePerSeat * seatCount * 12m + plan.SetupFee;
-        var discountAmount = 0m;
-        var notes = string.Empty;
+        var discount = subscriptionDiscountService.CalculateDiscount(baseAmount, customer, seatCount, useLoyaltyPoints);
+        var notes = discount.Notes + "; ";
 
-        // segment
-        discountAmount += baseAmount * segmentDiscountStrategy.GetDiscount(customer.CustomerSegment);
-        notes += segmentDiscountStrategy.GetNotes(customer.CustomerSegment);
-
-        //loyalty
-        discountAmount += baseAmount * loyaltyDiscountStrategy.GetDiscount(customer.YearsWithCompany);
-        notes += loyaltyDiscountStrategy.GetNotes(customer.YearsWithCompany);
-
-        if (seatCount >= 50)
-        {
-            discountAmount += baseAmount * 0.12m;
-            notes += "large team discount; ";
-        }
-        else if (seatCount >= 20)
-        {
-            discountAmount += baseAmount * 0.08m;
-            notes += "medium team discount; ";
-        }
-        else if (seatCount >= 10)
-        {
-            discountAmount += baseAmount * 0.04m;
-            notes += "small team discount; ";
-        }
-
-        if (useLoyaltyPoints && customer.LoyaltyPoints > 0)
-        {
-            var pointsToUse = customer.LoyaltyPoints > 200 ? 200 : customer.LoyaltyPoints;
-            discountAmount += pointsToUse;
-            notes += $"loyalty points used: {pointsToUse}; ";
-        }
-
-        var subtotalAfterDiscount = baseAmount - discountAmount;
+        var subtotalAfterDiscount = baseAmount - discount.DiscountAmount;
         if (subtotalAfterDiscount < 300m)
         {
             subtotalAfterDiscount = 300m;
@@ -150,7 +124,7 @@ public class SubscriptionRenewalService(
             PaymentMethod = normalizedPaymentMethod,
             SeatCount = seatCount,
             BaseAmount = Math.Round(baseAmount, 2, MidpointRounding.AwayFromZero),
-            DiscountAmount = Math.Round(discountAmount, 2, MidpointRounding.AwayFromZero),
+            DiscountAmount = Math.Round(discount.DiscountAmount, 2, MidpointRounding.AwayFromZero),
             SupportFee = Math.Round(supportFee, 2, MidpointRounding.AwayFromZero),
             PaymentFee = Math.Round(paymentFee, 2, MidpointRounding.AwayFromZero),
             TaxAmount = Math.Round(taxAmount, 2, MidpointRounding.AwayFromZero),
