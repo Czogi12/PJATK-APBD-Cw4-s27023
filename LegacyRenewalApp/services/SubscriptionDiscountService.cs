@@ -39,4 +39,16 @@ public class SubscriptionDiscountService(
 
         return new SubscriptionTotalFixedDiscount(string.Join("; ", notes), discountAmount);
     }
+
+    public SubscriptionTotalModifier CalculateSubTotal(decimal baseAmount)
+    {
+        var notes = string.Empty;
+        if (baseAmount < 300m)
+        {
+            baseAmount = 300m;
+            notes += "minimum discounted subtotal applied; ";
+        }
+
+        return new SubscriptionTotalFixedDiscount(notes, baseAmount);
+    }
 }

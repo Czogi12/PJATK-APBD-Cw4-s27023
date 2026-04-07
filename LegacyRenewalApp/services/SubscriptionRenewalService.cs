@@ -1,4 +1,5 @@
 using System;
+using LegacyRenewalApp.extensions;
 using LegacyRenewalApp.interfaces.services;
 using LegacyRenewalApp.interfaces.validators;
 using LegacyRenewalApp.libs;
@@ -6,6 +7,7 @@ using LegacyRenewalApp.models;
 using LegacyRenewalApp.repositories;
 using LegacyRenewalApp.strategies;
 using LegacyRenewalApp.strategies.discounts;
+using LegacyRenewalApp.strategies.fees;
 using LegacyRenewalApp.utils;
 using LegacyRenewalApp.validators;
 
@@ -15,7 +17,9 @@ public class SubscriptionRenewalService(
     ICustomerService customerService,
     IPlanService planService,
     IRenewalRequestValidator renewalRequestValidator,
-    ISubscriptionDiscountService subscriptionDiscountService
+    ISubscriptionDiscountService subscriptionDiscountService,
+    ISubscriptionFeeService subscriptionFeeService,
+    ITaxService taxService
 ) : ISubscriptionRenewalService
 {
     public SubscriptionRenewalService() :
@@ -25,7 +29,12 @@ public class SubscriptionRenewalService(
                 new RegularLoyaltyDiscountStrategy(),
                 new RegularSeatsDiscountStrategy(),
                 new RegularPointsDiscountStrategy()
-            )
+            ),
+            new SubscriptionFeeService(
+                new RegularPlanFeeStrategy(),
+                new RegularPaymentFeeStrategy()
+            ),
+            new TaxService()
         )
     {
     }
@@ -51,64 +60,20 @@ public class SubscriptionRenewalService(
 
         var discounts =
             subscriptionDiscountService.CalculateDiscount(baseAmount, customer, seatCount, useLoyaltyPoints);
-        var notes = discounts.Notes + "; ";
 
-        var subtotalAfterDiscount = discounts.CalculateDiscount(baseAmount);
-        if (subtotalAfterDiscount < 300m)
-        {
-            subtotalAfterDiscount = 300m;
-            notes += "minimum discounted subtotal applied; ";
-        }
+        var subtotalAfterDiscount =
+            subscriptionDiscountService.CalculateSubTotal(discounts.CalculateDiscount(baseAmount));
 
-        var supportFee = 0m;
-        var normalizedPlanCode = PlanCodeUtil.Normalize(planCode);
-        if (includePremiumSupport)
-        {
-            if (normalizedPlanCode == "START")
-                supportFee = 250m;
-            else if (normalizedPlanCode == "PRO")
-                supportFee = 400m;
-            else if (normalizedPlanCode == "ENTERPRISE") supportFee = 700m;
+        var planFee = subscriptionFeeService.CalculatePlanFee(includePremiumSupport, planCode.ToPlanCode());
+        var paymentFee =
+            subscriptionFeeService.CalculatePaymentFee(paymentMethod.ToPaymentMethod(),
+                planFee.CalculateDiscount(subtotalAfterDiscount.Amount));
 
-            notes += "premium support included; ";
-        }
+        var notes = discounts.Notes + "; " + planFee.Notes + "; " + paymentFee.Notes + "; ";
 
-        var paymentFee = 0m;
-        if (normalizedPaymentMethod == "CARD")
-        {
-            paymentFee = (subtotalAfterDiscount + supportFee) * 0.02m;
-            notes += "card payment fee; ";
-        }
-        else if (normalizedPaymentMethod == "BANK_TRANSFER")
-        {
-            paymentFee = (subtotalAfterDiscount + supportFee) * 0.01m;
-            notes += "bank transfer fee; ";
-        }
-        else if (normalizedPaymentMethod == "PAYPAL")
-        {
-            paymentFee = (subtotalAfterDiscount + supportFee) * 0.035m;
-            notes += "paypal fee; ";
-        }
-        else if (normalizedPaymentMethod == "INVOICE")
-        {
-            paymentFee = 0m;
-            notes += "invoice payment; ";
-        }
-        else
-        {
-            throw new ArgumentException("Unsupported payment method");
-        }
+        var taxRate = taxService.GetTaxRate(customer.Country);
 
-        var taxRate = 0.20m;
-        if (customer.Country == "Poland")
-            taxRate = 0.23m;
-        else if (customer.Country == "Germany")
-            taxRate = 0.19m;
-        else if (customer.Country == "Czech Republic")
-            taxRate = 0.21m;
-        else if (customer.Country == "Norway") taxRate = 0.25m;
-
-        var taxBase = subtotalAfterDiscount + supportFee + paymentFee;
+        var taxBase = subtotalAfterDiscount.Amount + planFee.Amount + paymentFee.Amount;
         var taxAmount = taxBase * taxRate;
         var finalAmount = taxBase + taxAmount;
 
@@ -120,15 +85,15 @@ public class SubscriptionRenewalService(
 
         var invoice = new RenewalInvoice
         {
-            InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{customerId}-{normalizedPlanCode}",
+            InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{customerId}-{PlanCodeUtil.Normalize(planCode)}",
             CustomerName = customer.FullName,
-            PlanCode = normalizedPlanCode,
+            PlanCode = PlanCodeUtil.Normalize(planCode),
             PaymentMethod = normalizedPaymentMethod,
             SeatCount = seatCount,
             BaseAmount = Math.Round(baseAmount, 2, MidpointRounding.AwayFromZero),
             DiscountAmount = Math.Round(discounts.Amount, 2, MidpointRounding.AwayFromZero),
-            SupportFee = Math.Round(supportFee, 2, MidpointRounding.AwayFromZero),
-            PaymentFee = Math.Round(paymentFee, 2, MidpointRounding.AwayFromZero),
+            SupportFee = Math.Round(planFee.Amount, 2, MidpointRounding.AwayFromZero),
+            PaymentFee = Math.Round(paymentFee.Amount, 2, MidpointRounding.AwayFromZero),
             TaxAmount = Math.Round(taxAmount, 2, MidpointRounding.AwayFromZero),
             FinalAmount = Math.Round(finalAmount, 2, MidpointRounding.AwayFromZero),
             Notes = notes.Trim(),
@@ -141,7 +106,7 @@ public class SubscriptionRenewalService(
         {
             var subject = "Subscription renewal invoice";
             var body =
-                $"Hello {customer.FullName}, your renewal for plan {normalizedPlanCode} " +
+                $"Hello {customer.FullName}, your renewal for plan {PlanCodeUtil.Normalize(planCode)} " +
                 $"has been prepared. Final amount: {invoice.FinalAmount:F2}.";
 
             LegacyBillingGateway.SendEmail(customer.Email, subject, body);
