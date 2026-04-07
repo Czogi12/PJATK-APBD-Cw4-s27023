@@ -7,5 +7,5 @@ public interface ISegmentDiscountStrategy
 {
     // decimal GetDiscount(CustomerSegment segment);
     // string GetNotes(CustomerSegment segment);
-    SubscriptionDiscount GetDiscount(CustomerSegment segment);
+    SubscriptionTotalModifier GetDiscount(CustomerSegment segment);
 }

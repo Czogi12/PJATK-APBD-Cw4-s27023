@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using LegacyRenewalApp.interfaces.strategies;
 using LegacyRenewalApp.models;
+using LegacyRenewalApp.models.discounts;
 
 namespace LegacyRenewalApp.interfaces.services;
 
@@ -11,12 +12,12 @@ public class SubscriptionDiscountService(
     IPointsDiscountStrategy pointsDiscountStrategy
 ) : ISubscriptionDiscountService
 {
-    public SubscriptionDiscount CalculateDiscount(decimal totalAbount, Customer customer, int seatCount,
+    public SubscriptionTotalModifier CalculateDiscount(decimal totalAbount, Customer customer, int seatCount,
         bool useLoyaltyPoints)
     {
         List<string> notes = [];
         var discountAmount = 0m;
-        List<SubscriptionDiscount> subscriptionDiscounts =
+        List<SubscriptionTotalModifier> subscriptionDiscounts =
         [
             segmentDiscountStrategy.GetDiscount(customer.CustomerSegment),
             loyaltyDiscountStrategy.GetDiscount(customer.YearsWithCompany),
@@ -26,16 +27,16 @@ public class SubscriptionDiscountService(
         subscriptionDiscounts.ForEach(subscriptionDiscount =>
         {
             notes.Add(subscriptionDiscount.Notes);
-            discountAmount += subscriptionDiscount.DiscountAmount * totalAbount;
+            discountAmount += totalAbount - subscriptionDiscount.CalculateDiscount(totalAbount);
         });
 
         if (useLoyaltyPoints)
         {
             var pointsDiscount = pointsDiscountStrategy.GetDiscount(customer.LoyaltyPoints);
             notes.Add(pointsDiscount.Notes);
-            discountAmount += pointsDiscount.DiscountAmount;
+            discountAmount += pointsDiscount.Amount;
         }
 
-        return new SubscriptionDiscount(string.Join("; ", notes), discountAmount);
+        return new SubscriptionTotalFixedDiscount(string.Join("; ", notes), discountAmount);
     }
 }

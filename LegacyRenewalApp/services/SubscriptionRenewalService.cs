@@ -5,6 +5,7 @@ using LegacyRenewalApp.libs;
 using LegacyRenewalApp.models;
 using LegacyRenewalApp.repositories;
 using LegacyRenewalApp.strategies;
+using LegacyRenewalApp.strategies.discounts;
 using LegacyRenewalApp.utils;
 using LegacyRenewalApp.validators;
 
@@ -46,12 +47,13 @@ public class SubscriptionRenewalService(
 
         if (!customer.IsActive) throw new InvalidOperationException("Inactive customers cannot renew subscriptions");
 
-
         var baseAmount = plan.MonthlyPricePerSeat * seatCount * 12m + plan.SetupFee;
-        var discount = subscriptionDiscountService.CalculateDiscount(baseAmount, customer, seatCount, useLoyaltyPoints);
-        var notes = discount.Notes + "; ";
 
-        var subtotalAfterDiscount = baseAmount - discount.DiscountAmount;
+        var discounts =
+            subscriptionDiscountService.CalculateDiscount(baseAmount, customer, seatCount, useLoyaltyPoints);
+        var notes = discounts.Notes + "; ";
+
+        var subtotalAfterDiscount = discounts.CalculateDiscount(baseAmount);
         if (subtotalAfterDiscount < 300m)
         {
             subtotalAfterDiscount = 300m;
@@ -124,7 +126,7 @@ public class SubscriptionRenewalService(
             PaymentMethod = normalizedPaymentMethod,
             SeatCount = seatCount,
             BaseAmount = Math.Round(baseAmount, 2, MidpointRounding.AwayFromZero),
-            DiscountAmount = Math.Round(discount.DiscountAmount, 2, MidpointRounding.AwayFromZero),
+            DiscountAmount = Math.Round(discounts.Amount, 2, MidpointRounding.AwayFromZero),
             SupportFee = Math.Round(supportFee, 2, MidpointRounding.AwayFromZero),
             PaymentFee = Math.Round(paymentFee, 2, MidpointRounding.AwayFromZero),
             TaxAmount = Math.Round(taxAmount, 2, MidpointRounding.AwayFromZero),
