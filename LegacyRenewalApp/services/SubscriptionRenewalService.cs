@@ -1,8 +1,9 @@
 using System;
+using LegacyRenewalApp.adapters;
 using LegacyRenewalApp.extensions;
+using LegacyRenewalApp.interfaces;
 using LegacyRenewalApp.interfaces.services;
 using LegacyRenewalApp.interfaces.validators;
-using LegacyRenewalApp.libs;
 using LegacyRenewalApp.models;
 using LegacyRenewalApp.repositories;
 using LegacyRenewalApp.strategies;
@@ -19,7 +20,8 @@ public class SubscriptionRenewalService(
     IRenewalRequestValidator renewalRequestValidator,
     ISubscriptionDiscountService subscriptionDiscountService,
     ISubscriptionFeeService subscriptionFeeService,
-    ITaxService taxService
+    ITaxService taxService,
+    IBillingGateway billingGateway
 ) : ISubscriptionRenewalService
 {
     public SubscriptionRenewalService() :
@@ -34,7 +36,8 @@ public class SubscriptionRenewalService(
                 new RegularPlanFeeStrategy(),
                 new RegularPaymentFeeStrategy()
             ),
-            new TaxService()
+            new TaxService(),
+            new BillingGatewayAdapter()
         )
     {
     }
@@ -100,17 +103,12 @@ public class SubscriptionRenewalService(
             GeneratedAt = DateTime.UtcNow
         };
 
-        LegacyBillingGateway.SaveInvoice(invoice);
+        billingGateway.SaveInvoice(invoice);
 
         if (!string.IsNullOrWhiteSpace(customer.Email))
-        {
-            var subject = "Subscription renewal invoice";
-            var body =
+            billingGateway.SendEmail(customer.Email, "Subscription renewal invoice",
                 $"Hello {customer.FullName}, your renewal for plan {PlanCodeUtil.Normalize(planCode)} " +
-                $"has been prepared. Final amount: {invoice.FinalAmount:F2}.";
-
-            LegacyBillingGateway.SendEmail(customer.Email, subject, body);
-        }
+                $"has been prepared. Final amount: {invoice.FinalAmount:F2}.");
 
         return invoice;
     }
